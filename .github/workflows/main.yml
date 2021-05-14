@@ -12,4 +12,4 @@ jobs:
     - name: OWASP ZAP Baseline Scan
       uses: zaproxy/action-baseline@v0.3.0
       with:
-        target: "https://support.billing.test.w3.cloud.ibm.com/"
+        target: "https://www.starxel.com/"
