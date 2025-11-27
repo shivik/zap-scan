@@ -1,115 +1,58 @@
-# Node.js MongoDB Transactions API
+## OWASP ZAP API Scanner with Kafka Integration
+This project provides a Scala-based utility to scan specific API endpoints using OWASP ZAP and stream the scan results or alerts to an Apache Kafka topic for further processing or monitoring.
 
-This project demonstrates MongoDB multi-document transactions in an “enterprise-style” Node.js service with layered architecture (config, repositories, services, routes).
+Prerequisites
+Java 11+ or higher installed
 
-## Prerequisites
+Scala 2.13+ installed
 
-- Node.js 18+ and npm
-- Docker (recommended) or a local MongoDB instance configured as a replica set
-- curl or any HTTP client (Postman, Insomnia, etc.)
+SBT (Scala Build Tool) installed
 
-## 1. Clone and install
+OWASP ZAP running as a daemon with API enabled
 
-git clone https://github.com/shivik/mongodb-transactions-restapi
-cd mongodb-transactions-restapi
+Apache Kafka broker running and accessible
 
-npm install
+Setup Instructions
+Start OWASP ZAP
 
+Run OWASP ZAP in daemon mode, allowing remote API access. Example:
 
+bash
+zap.sh -daemon -port 8080 -config api.key=<your-zap-api-key>
+Start Kafka
 
-## 2. Start MongoDB as a replica set
+Make sure your Kafka broker is running on the configured bootstrap server (default: localhost:9092).
 
-Transactions require MongoDB running as a replica set, even for local development.
+Configure the project
 
-### Option A: Local mongod
+Update the EnterpriseZapKafkaScannerApp.scala file with your ZAP API key and Kafka bootstrap server if different.
 
-mkdir -p /data/mongodb/db0
+Verify the target base URL and API endpoints for scanning.
 
-mongod --port 27017 --dbpath /data/mongodb/db0 --replSet rs0 --bind_ip localhost
+Build and Run
+Clone or download the project source code.
 
+Build the project using SBT:
 
+bash
+sbt compile
+Run the scanner application:
 
-In another terminal, start the replica set:
+bash
+sbt run
+The app will:
 
-mongosh
-rs.initiate()
+Connect to OWASP ZAP API.
 
+Scan the specified API endpoints by running spider and active scans.
 
+Send JSON scan results asynchronously to the configured Kafka topic.
 
-Keep `mongod` running.
+Log scan progress and Kafka messaging status in the console.
 
-### Option B: Docker (single-node replica set)
+Customize
+Add or remove API endpoints to scan by modifying the endpoints list in EnterpriseZapKafkaScannerApp.scala.
 
-docker run -d
---name mongo-rs0
--p 27017:27017
-mongo:7
---replSet rs0 --bind_ip_all
+Customize Kafka topic and ZAP configurations in the same file.
 
-
-
-Then:
-
-docker exec -it mongo-rs0 mongosh --eval "rs.initiate()"
-
-
-
-## 3. Configure environment
-
-Create a `.env` file in the project root:
-
-PORT=3000
-MONGO_URI=mongodb://localhost:27017/?replicaSet=rs0
-DB_NAME=enterprise_demo
-
-
-
-The `replicaSet=rs0` query parameter is required for transaction support.
-
-## 4. Start the API server
-
-npm start
-
-or
-node src/server.js
-
-
-
-The API will listen on `http://localhost:3000`. 
-
-## 5. Seed demo accounts
-
-Seed two sample accounts inside a transaction: 
-
-curl -X POST http://localhost:3000/api/accounts/seed
-
-
-
-Expected response (shape may vary):
-
-{ "ok": true }
-
-
-
-## 6. Run a transactional transfer
-
-Perform a funds transfer wrapped in a MongoDB transaction:
-
-curl -X POST http://localhost:3000/api/accounts/transfer
--H "Content-Type: application/json"
--d '{"fromAccountId":"A100","toAccountId":"A200","amount":100}'
-
-
-
-You should receive a JSON response with updated balances, and both balance updates will commit or roll back together if any error occurs.
-
-## 7. Verifying data (optional)
-
-Use `mongosh` to inspect balances:
-
-mongosh "mongodb://localhost:27017/enterprise_demo"
-db.accounts.find().pretty()
-
-
-
-You should see the `balance` fields updated consistently across both accounts, demonstrating a successful multi-document transaction.
+Extend scanning retries, concurrency, or detailed logging as needed.
